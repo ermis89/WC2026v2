@@ -38,6 +38,34 @@ export function calculateGroupStandings({ groups, teams, matches, results }) {
   );
 }
 
+export function calculateBestThirdRanking(groupStandings) {
+  return Object.entries(groupStandings)
+    .map(([group, table]) => ({ ...table[2], group }))
+    .sort(compareRows)
+    .map((row, index) => ({
+      ...row,
+      rank: index + 1,
+      zone: index < 8 ? 'third-qualified' : 'third-eliminated',
+    }));
+}
+
+export function resolveTeamSlot(slot, groupStandings, bestThirdRanking) {
+  if (!slot) return null;
+
+  if (/^[12][A-L]$/.test(slot)) {
+    const rank = Number(slot[0]);
+    const group = slot[1];
+    return groupStandings[group]?.find((row) => row.rank === rank)?.team ?? null;
+  }
+
+  if (/^3-/.test(slot)) {
+    const eligibleGroups = slot.replace('3-', '').split('/');
+    return bestThirdRanking.find((row) => eligibleGroups.includes(row.group))?.team ?? null;
+  }
+
+  return null;
+}
+
 function createStandingRow(code, team) {
   return {
     code,
