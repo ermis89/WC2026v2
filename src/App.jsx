@@ -18,7 +18,9 @@ import {
 } from 'lucide-react';
 import { groups, teams } from './data/teams.js';
 import { matches } from './data/matches.js';
+import { results } from './data/results.js';
 import { stadiums } from './data/stadiums.js';
+import { calculateGroupStandings } from './utils/standings.js';
 
 const tabs = [
   { id: 'overview', label: 'Overview', icon: Trophy },
@@ -60,8 +62,12 @@ function App() {
     );
   }, [query]);
 
+  const groupStandings = useMemo(
+    () => calculateGroupStandings({ groups, teams, matches, results }),
+    [],
+  );
+
   const nextMatches = matches.slice().sort((a, b) => new Date(a.date) - new Date(b.date));
-  const groupMatches = nextMatches.filter((match) => match.stageCode === 'G');
   const knockoutMatches = nextMatches.filter((match) => match.stageCode !== 'G');
   const topSeeds = teams.slice().sort((a, b) => a.fifaRank - b.fifaRank).slice(0, 5);
 
@@ -169,22 +175,36 @@ function App() {
         )}
 
         {activeTab === 'groups' && (
-          <Panel title="Groups" icon={Table2} description="All 12 groups with current team composition. Standings calculation will be connected to results in the next iteration.">
+          <Panel title="Group standings" icon={Table2} description="Calculated from completed group-stage results. Top two qualify automatically; third-place teams are tracked for best-third ranking.">
             <div className="groupsGrid">
-              {Object.entries(groups).map(([group, codes]) => (
+              {Object.entries(groupStandings).map(([group, table]) => (
                 <article className="groupCard" key={group}>
                   <header>Group {group}</header>
-                  <div className="groupRows">
-                    {codes.map((code) => {
-                      const team = teamByCode(code);
-                      return (
-                        <div className="groupRow" key={code}>
-                          <span className="flag" aria-hidden="true">{team?.flag ?? '🏳️'}</span>
-                          <strong>{team?.name ?? code}</strong>
-                          <small>{team?.confederation}</small>
-                        </div>
-                      );
-                    })}
+                  <div className="standingsTable" role="table" aria-label={`Group ${group} standings`}>
+                    <div className="standingsRow standingsRow--head" role="row">
+                      <span>Team</span>
+                      <span>P</span>
+                      <span>W</span>
+                      <span>D</span>
+                      <span>L</span>
+                      <span>GD</span>
+                      <span>Pts</span>
+                    </div>
+                    {table.map((row) => (
+                      <div className={`standingsRow standingsRow--${row.zone}`} role="row" key={row.code}>
+                        <span className="standingsTeam">
+                          <span className="rankNumber">{row.rank}</span>
+                          <span className="flag" aria-hidden="true">{row.team?.flag ?? '🏳️'}</span>
+                          <strong>{row.team?.name ?? row.code}</strong>
+                        </span>
+                        <span>{row.played}</span>
+                        <span>{row.won}</span>
+                        <span>{row.drawn}</span>
+                        <span>{row.lost}</span>
+                        <span>{formatGoalDifference(row.goalDifference)}</span>
+                        <span className="pointsCell">{row.points}</span>
+                      </div>
+                    ))}
                   </div>
                 </article>
               ))}
@@ -314,6 +334,11 @@ function TeamName({ team, fallback, align = 'left' }) {
       <span>{team?.name ?? fallback}</span>
     </div>
   );
+}
+
+function formatGoalDifference(value) {
+  if (value > 0) return `+${value}`;
+  return String(value);
 }
 
 export default App;
