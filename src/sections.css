@@ -1,6 +1,6 @@
 .groupsGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 1rem;
 }
 
@@ -25,26 +25,74 @@
   text-transform: uppercase;
 }
 
-.groupRows {
+.standingsTable {
   display: grid;
+  min-width: 0;
 }
 
-.groupRow {
+.standingsRow {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: minmax(145px, 1fr) repeat(6, minmax(30px, auto));
   align-items: center;
-  gap: 0.55rem;
-  padding: 0.75rem 1rem;
+  gap: 0.45rem;
+  padding: 0.7rem 0.85rem;
   border-bottom: 1px solid var(--border);
+  font-size: 0.82rem;
 }
 
-.groupRow:last-child {
+.standingsRow:last-child {
   border-bottom: 0;
 }
 
-.groupRow small {
+.standingsRow--head {
   color: var(--muted);
-  font-weight: 800;
+  background: rgba(0, 0, 0, 0.1);
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.standingsRow--qualified {
+  box-shadow: inset 4px 0 0 #23c55e;
+}
+
+.standingsRow--third {
+  box-shadow: inset 4px 0 0 var(--accent-2);
+}
+
+.standingsRow--eliminated {
+  box-shadow: inset 4px 0 0 rgba(255, 255, 255, 0.12);
+}
+
+.standingsTeam {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.standingsTeam strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rankNumber {
+  display: inline-grid;
+  place-items: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 999px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.07);
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.pointsCell {
+  color: var(--accent-2);
+  font-weight: 950;
 }
 
 .bracketGrid {
@@ -69,6 +117,7 @@
 }
 
 @media (max-width: 760px) {
+  .groupsGrid,
   .bracketGrid {
     grid-template-columns: 1fr;
     overflow-x: visible;
@@ -76,5 +125,12 @@
 
   .bracketRound {
     min-width: 0;
+  }
+
+  .standingsRow {
+    grid-template-columns: minmax(128px, 1fr) repeat(6, minmax(24px, auto));
+    gap: 0.25rem;
+    padding: 0.65rem 0.6rem;
+    font-size: 0.76rem;
   }
 }
