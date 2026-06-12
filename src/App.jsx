@@ -185,25 +185,28 @@ function App() {
 
         {activeTab === 'groups' && (
           <div className="stackedPanels">
-            <Panel title="Group standings" icon={Table2} description="Calculated from completed group-stage results. Top two qualify automatically; third-place teams are tracked separately.">
+            <Panel title="Group standings" icon={Table2} description="Calculated from completed group-stage results. Positions remain projected until all six matches in the group are complete.">
               <div className="groupsGrid">
                 {Object.entries(groupStandings).map(([group, table]) => (
                   <article className="groupCard" key={group}>
-                    <header>Group {group}</header>
+                    <header>
+                      <span>Group {group}</span>
+                      <StatusPill status={table[0]?.status} progress={table[0]?.progress} />
+                    </header>
                     <StandingsTable table={table} label={`Group ${group} standings`} />
                   </article>
                 ))}
               </div>
             </Panel>
 
-            <Panel title="Best third-place ranking" icon={Medal} description="The eight best third-placed teams qualify for the Round of 32. This ranking updates automatically as group results are added.">
+            <Panel title="Best third-place ranking" icon={Medal} description="The eight best third-placed teams qualify for the Round of 32. This ranking is projected until every group is complete.">
               <ThirdPlaceTable table={bestThirdRanking} />
             </Panel>
           </div>
         )}
 
         {activeTab === 'bracket' && (
-          <Panel title="Knockout bracket" icon={GitBranch} description="Round of 32 slots resolve automatically from standings when possible. Winner/loser placeholders resolve after knockout results are added.">
+          <Panel title="Knockout bracket" icon={GitBranch} description="Round of 32 slots resolve from standings. Projected teams are explicitly labelled until group qualification is confirmed.">
             <div className="bracketGrid">
               {['R32', 'R16', 'QF', 'SF', '3RD', 'F'].map((stageCode) => (
                 <section className="bracketRound" key={stageCode}>
@@ -317,6 +320,7 @@ function StandingsTable({ table, label }) {
             <span className="rankNumber">{row.rank}</span>
             <span className="flag" aria-hidden="true">{row.team?.flag ?? '🏳️'}</span>
             <strong>{row.team?.name ?? row.code}</strong>
+            <span className={`miniStatus miniStatus--${row.status}`}>{row.status}</span>
           </span>
           <span>{row.played}</span>
           <span>{row.won}</span>
@@ -342,9 +346,21 @@ function ThirdPlaceTable({ table }) {
           <span>{row.played}P</span>
           <span>{formatGoalDifference(row.goalDifference)}</span>
           <span className="pointsCell">{row.points} pts</span>
+          <span className={`miniStatus miniStatus--${row.status}`}>{row.status}</span>
         </div>
       ))}
     </div>
+  );
+}
+
+function StatusPill({ status, progress }) {
+  const label = status === 'confirmed' ? 'Confirmed' : 'Projected';
+  const progressText = progress ? `${progress.completed}/${progress.total}` : '0/0';
+
+  return (
+    <span className={`statusPill statusPill--${status}`}>
+      {label} · {progressText}
+    </span>
   );
 }
 
@@ -377,6 +393,7 @@ function TeamName({ team, fallback, align = 'left' }) {
     <div className={align === 'right' ? 'teamName teamName--right' : 'teamName'}>
       <span className="flag" aria-hidden="true">{team?.flag ?? '🏳️'}</span>
       <span>{team?.name ?? fallback}</span>
+      {team?.slotStatus && <span className={`miniStatus miniStatus--${team.slotStatus}`}>{team.slotStatus}</span>}
     </div>
   );
 }
