@@ -1,6 +1,25 @@
 export function calculateGroupStandings({ groups, teams, matches, results }) {
   const teamsByCode = new Map(teams.map((team) => [team.code, team]));
   const matchesById = new Map(matches.map((match) => [match.id, match]));
+  const completedGroupMatchIds = new Set(
+    results
+      .filter((result) => result.status === 'FT')
+      .map((result) => result.matchId),
+  );
+
+  const groupProgress = Object.fromEntries(
+    Object.keys(groups).map((group) => {
+      const groupMatchIds = matches
+        .filter((match) => match.stageCode === 'G' && match.group === group)
+        .map((match) => match.id);
+      const completed = groupMatchIds.filter((id) => completedGroupMatchIds.has(id)).length;
+      return [group, {
+        completed,
+        total: groupMatchIds.length,
+        isComplete: groupMatchIds.length > 0 && completed === groupMatchIds.length,
+      }];
+    }),
+  );
 
   const standings = Object.fromEntries(
     Object.entries(groups).map(([group, codes]) => [
@@ -27,18 +46,26 @@ export function calculateGroupStandings({ groups, teams, matches, results }) {
     });
 
   return Object.fromEntries(
-    Object.entries(standings).map(([group, table]) => [
-      group,
-      table.slice().sort(compareRows).map((row, index) => ({
-        ...row,
-        rank: index + 1,
-        zone: index < 2 ? 'qualified' : index === 2 ? 'third' : 'eliminated',
-      })),
-    ]),
+    Object.entries(standings).map(([group, table]) => {
+      const progress = groupProgress[group];
+      const status = progress.isComplete ? 'confirmed' : 'projected';
+      return [
+        group,
+        table.slice().sort(compareRows).map((row, index) => ({
+          ...row,
+          rank: index + 1,
+          zone: index < 2 ? 'qualified' : index === 2 ? 'third' : 'eliminated',
+          status,
+          progress,
+        })),
+      ];
+    }),
   );
 }
 
 export function calculateBestThirdRanking(groupStandings) {
+  const allGroupsComplete = Object.values(groupStandings).every((table) => table[0]?.progress?.isComplete);
+
   return Object.entries(groupStandings)
     .map(([group, table]) => ({ ...table[2], group }))
     .sort(compareRows)
@@ -46,6 +73,7 @@ export function calculateBestThirdRanking(groupStandings) {
       ...row,
       rank: index + 1,
       zone: index < 8 ? 'third-qualified' : 'third-eliminated',
+      status: allGroupsComplete ? 'confirmed' : 'projected',
     }));
 }
 
@@ -55,12 +83,14 @@ export function resolveTeamSlot(slot, groupStandings, bestThirdRanking) {
   if (/^[12][A-L]$/.test(slot)) {
     const rank = Number(slot[0]);
     const group = slot[1];
-    return groupStandings[group]?.find((row) => row.rank === rank)?.team ?? null;
+    const row = groupStandings[group]?.find((item) => item.rank === rank);
+    return row ? { ...row.team, slotStatus: row.status } : null;
   }
 
   if (/^3-/.test(slot)) {
     const eligibleGroups = slot.replace('3-', '').split('/');
-    return bestThirdRanking.find((row) => eligibleGroups.includes(row.group))?.team ?? null;
+    const row = bestThirdRanking.find((item) => eligibleGroups.includes(item.group));
+    return row ? { ...row.team, slotStatus: row.status } : null;
   }
 
   return null;
