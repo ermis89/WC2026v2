@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import {
   CalendarDays,
   ChevronRight,
+  GitBranch,
   Globe2,
   MapPin,
   Medal,
@@ -11,16 +12,19 @@ import {
   Sparkles,
   Stadium,
   Sun,
+  Table2,
   Trophy,
   Users,
 } from 'lucide-react';
-import { teams } from './data/teams.js';
+import { groups, teams } from './data/teams.js';
 import { matches } from './data/matches.js';
 import { stadiums } from './data/stadiums.js';
 
 const tabs = [
   { id: 'overview', label: 'Overview', icon: Trophy },
   { id: 'matches', label: 'Matches', icon: CalendarDays },
+  { id: 'groups', label: 'Groups', icon: Table2 },
+  { id: 'bracket', label: 'Bracket', icon: GitBranch },
   { id: 'teams', label: 'Teams', icon: Users },
   { id: 'stadiums', label: 'Stadiums', icon: Stadium },
 ];
@@ -35,6 +39,10 @@ const formatDate = new Intl.DateTimeFormat(undefined, {
 
 function teamByCode(code) {
   return teams.find((team) => team.code === code);
+}
+
+function venueById(id) {
+  return stadiums.find((venue) => venue.id === id);
 }
 
 function App() {
@@ -53,6 +61,8 @@ function App() {
   }, [query]);
 
   const nextMatches = matches.slice().sort((a, b) => new Date(a.date) - new Date(b.date));
+  const groupMatches = nextMatches.filter((match) => match.stageCode === 'G');
+  const knockoutMatches = nextMatches.filter((match) => match.stageCode !== 'G');
   const topSeeds = teams.slice().sort((a, b) => a.fifaRank - b.fifaRank).slice(0, 5);
 
   return (
@@ -106,8 +116,8 @@ function App() {
             <button className="primaryButton" type="button" onClick={() => setActiveTab('matches')}>
               View matches <ChevronRight size={18} />
             </button>
-            <button className="secondaryButton" type="button" onClick={() => setActiveTab('teams')}>
-              Explore teams
+            <button className="secondaryButton" type="button" onClick={() => setActiveTab('groups')}>
+              View groups
             </button>
           </div>
         </div>
@@ -149,10 +159,51 @@ function App() {
         )}
 
         {activeTab === 'matches' && (
-          <Panel title="Match schedule" icon={CalendarDays} description="Initial sample dataset. Full 104-match data can be imported next.">
+          <Panel title="Match schedule" icon={CalendarDays} description="Full 104-match skeleton. Knockout opponents remain placeholders until standings are known.">
             <div className="matchGrid">
               {nextMatches.map((match) => (
                 <MatchCard key={match.id} match={match} />
+              ))}
+            </div>
+          </Panel>
+        )}
+
+        {activeTab === 'groups' && (
+          <Panel title="Groups" icon={Table2} description="All 12 groups with current team composition. Standings calculation will be connected to results in the next iteration.">
+            <div className="groupsGrid">
+              {Object.entries(groups).map(([group, codes]) => (
+                <article className="groupCard" key={group}>
+                  <header>Group {group}</header>
+                  <div className="groupRows">
+                    {codes.map((code) => {
+                      const team = teamByCode(code);
+                      return (
+                        <div className="groupRow" key={code}>
+                          <span className="flag" aria-hidden="true">{team?.flag ?? '🏳️'}</span>
+                          <strong>{team?.name ?? code}</strong>
+                          <small>{team?.confederation}</small>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </article>
+              ))}
+            </div>
+          </Panel>
+        )}
+
+        {activeTab === 'bracket' && (
+          <Panel title="Knockout bracket" icon={GitBranch} description="Round of 32 through Final. Opponent labels use FIFA-style qualification placeholders until group standings are final.">
+            <div className="bracketGrid">
+              {['R32', 'R16', 'QF', 'SF', '3RD', 'F'].map((stageCode) => (
+                <section className="bracketRound" key={stageCode}>
+                  <h3>{knockoutMatches.find((match) => match.stageCode === stageCode)?.stage}</h3>
+                  {knockoutMatches
+                    .filter((match) => match.stageCode === stageCode)
+                    .map((match) => (
+                      <MatchCard key={match.id} match={match} compact />
+                    ))}
+                </section>
               ))}
             </div>
           </Panel>
@@ -187,16 +238,16 @@ function App() {
         )}
 
         {activeTab === 'stadiums' && (
-          <Panel title="Host stadiums" icon={Stadium} description="Initial venue cards with capacity and planned match count.">
+          <Panel title="Host stadiums" icon={Stadium} description="All 16 host venues with capacity and planned match count.">
             <div className="stadiumGrid">
               {stadiums.map((venue) => (
                 <article className="stadiumCard" key={venue.id}>
                   <div className="stadiumCard__icon"><MapPin size={24} /></div>
                   <h3>{venue.name}</h3>
-                  <p>{venue.city}, {venue.country}</p>
+                  <p>{venue.fifaName}</p>
                   <div className="metaLine">
-                    <span>{venue.capacity.toLocaleString()} capacity</span>
-                    <span>{venue.matches} matches</span>
+                    <span>{venue.city}</span>
+                    <span>{venue.capacity.toLocaleString()}</span>
                   </div>
                 </article>
               ))}
@@ -235,11 +286,12 @@ function Panel({ title, icon: Icon, description, children }) {
 function MatchCard({ match, compact = false }) {
   const home = teamByCode(match.home);
   const away = teamByCode(match.away);
+  const venue = venueById(match.stadiumId);
 
   return (
     <article className={compact ? 'matchCard matchCard--compact' : 'matchCard'}>
       <div className="matchCard__top">
-        <span>{match.stage}</span>
+        <span>#{match.id} · {match.stage}</span>
         {match.group && <span>Group {match.group}</span>}
       </div>
       <div className="matchCard__teams">
@@ -249,7 +301,7 @@ function MatchCard({ match, compact = false }) {
       </div>
       <div className="matchCard__bottom">
         <span>{formatDate.format(new Date(match.date))}</span>
-        <span>{match.city}</span>
+        <span>{venue?.city ?? 'TBD'}</span>
       </div>
     </article>
   );
