@@ -1,0 +1,544 @@
+:root {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #eef3ff;
+  background: #07111f;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+.app {
+  min-height: 100vh;
+  --bg: #07111f;
+  --surface: rgba(255, 255, 255, 0.07);
+  --surface-strong: rgba(255, 255, 255, 0.11);
+  --border: rgba(255, 255, 255, 0.13);
+  --text: #eef3ff;
+  --muted: #9aa8bf;
+  --accent: #42a5ff;
+  --accent-2: #f5c542;
+  --shadow: 0 24px 80px rgba(0, 0, 0, 0.36);
+  background:
+    radial-gradient(circle at top left, rgba(66, 165, 255, 0.26), transparent 34rem),
+    radial-gradient(circle at 80% 12%, rgba(245, 197, 66, 0.14), transparent 25rem),
+    linear-gradient(135deg, #07111f 0%, #09182d 54%, #0a1020 100%);
+  color: var(--text);
+}
+
+.app[data-theme="light"] {
+  --bg: #f4f7fb;
+  --surface: rgba(255, 255, 255, 0.82);
+  --surface-strong: #ffffff;
+  --border: rgba(12, 28, 54, 0.12);
+  --text: #102033;
+  --muted: #5e6d80;
+  --accent: #006bd6;
+  --accent-2: #af7a00;
+  --shadow: 0 20px 64px rgba(12, 28, 54, 0.15);
+  background:
+    radial-gradient(circle at top left, rgba(0, 107, 214, 0.14), transparent 34rem),
+    radial-gradient(circle at 80% 12%, rgba(245, 197, 66, 0.18), transparent 25rem),
+    linear-gradient(135deg, #f6f9ff 0%, #eef4ff 54%, #f9fbff 100%);
+}
+
+.hero {
+  position: relative;
+  overflow: hidden;
+  padding: 1.25rem clamp(1rem, 4vw, 3rem) 4rem;
+}
+
+.hero__glow {
+  position: absolute;
+  inset: auto -10rem -14rem auto;
+  width: 34rem;
+  height: 34rem;
+  background: rgba(66, 165, 255, 0.22);
+  filter: blur(85px);
+  border-radius: 999px;
+  pointer-events: none;
+}
+
+.topbar,
+.contentShell {
+  width: min(1180px, 100%);
+  margin: 0 auto;
+}
+
+.topbar {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.075);
+  backdrop-filter: blur(18px);
+  box-shadow: var(--shadow);
+}
+
+.brand,
+.tabs,
+.tab,
+.iconButton,
+.eyebrow,
+.primaryButton,
+.secondaryButton,
+.panel h2,
+.statCard,
+.rankRow,
+.matchCard__top,
+.matchCard__bottom,
+.teamName,
+.metaLine,
+.searchBox {
+  display: flex;
+  align-items: center;
+}
+
+.brand {
+  gap: 0.7rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  padding-left: 0.35rem;
+  white-space: nowrap;
+}
+
+.brand strong {
+  color: var(--accent-2);
+}
+
+.brand__mark {
+  display: grid;
+  place-items: center;
+  width: 2.35rem;
+  height: 2.35rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #06101d;
+  font-weight: 900;
+}
+
+.tabs {
+  gap: 0.25rem;
+  padding: 0.2rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.tab {
+  gap: 0.4rem;
+  border: 0;
+  border-radius: 999px;
+  padding: 0.64rem 0.82rem;
+  color: var(--muted);
+  background: transparent;
+  font-weight: 700;
+  transition: 180ms ease;
+}
+
+.tab:hover,
+.tab--active {
+  color: var(--text);
+  background: var(--surface-strong);
+}
+
+.iconButton {
+  justify-content: center;
+  width: 2.45rem;
+  height: 2.45rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text);
+  background: var(--surface);
+}
+
+.hero__content {
+  position: relative;
+  z-index: 1;
+  max-width: 850px;
+  padding: clamp(4.5rem, 10vw, 7rem) 0 0;
+}
+
+.eyebrow {
+  gap: 0.45rem;
+  width: fit-content;
+  color: var(--accent-2);
+  background: rgba(245, 197, 66, 0.11);
+  border: 1px solid rgba(245, 197, 66, 0.25);
+  border-radius: 999px;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+h1 {
+  margin: 1.2rem 0 1rem;
+  max-width: 820px;
+  font-size: clamp(2.8rem, 8vw, 6rem);
+  line-height: 0.92;
+  letter-spacing: -0.07em;
+}
+
+.hero p {
+  max-width: 680px;
+  margin: 0;
+  color: var(--muted);
+  font-size: clamp(1rem, 2vw, 1.18rem);
+  line-height: 1.7;
+}
+
+.hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.7rem;
+}
+
+.primaryButton,
+.secondaryButton {
+  gap: 0.45rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  padding: 0.85rem 1.05rem;
+  font-weight: 850;
+}
+
+.primaryButton {
+  color: #06101d;
+  background: linear-gradient(135deg, var(--accent-2), #fff2a9);
+  border-color: transparent;
+}
+
+.secondaryButton {
+  color: var(--text);
+  background: var(--surface);
+}
+
+.contentShell {
+  padding: 0 clamp(1rem, 4vw, 3rem) 4rem;
+}
+
+.statsStrip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: -2rem;
+  margin-bottom: 1rem;
+}
+
+.statCard,
+.panel,
+.matchCard,
+.teamCard,
+.stadiumCard {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  backdrop-filter: blur(16px);
+  box-shadow: var(--shadow);
+}
+
+.statCard {
+  gap: 0.55rem;
+  padding: 1rem;
+  border-radius: 1.2rem;
+}
+
+.statCard svg {
+  color: var(--accent-2);
+}
+
+.statCard strong {
+  font-size: 1.55rem;
+  line-height: 1;
+}
+
+.statCard span {
+  color: var(--muted);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.grid.twoColumns {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
+  gap: 1rem;
+}
+
+.panel {
+  border-radius: 1.5rem;
+  padding: 1.25rem;
+  overflow: hidden;
+}
+
+.panel__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.panel h2 {
+  gap: 0.55rem;
+  margin: 0;
+  font-size: clamp(1.2rem, 3vw, 1.55rem);
+  letter-spacing: -0.035em;
+}
+
+.panel h2 svg {
+  color: var(--accent-2);
+}
+
+.panel p {
+  margin: 0.3rem 0 0;
+  color: var(--muted);
+}
+
+.matchList,
+.rankList {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.matchGrid,
+.teamGrid,
+.stadiumGrid {
+  display: grid;
+  gap: 1rem;
+}
+
+.matchGrid {
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+}
+
+.teamGrid {
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  margin-top: 1rem;
+}
+
+.stadiumGrid {
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+}
+
+.matchCard,
+.teamCard,
+.stadiumCard {
+  border-radius: 1.1rem;
+  padding: 1rem;
+}
+
+.matchCard {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.matchCard--compact {
+  box-shadow: none;
+}
+
+.matchCard__top,
+.matchCard__bottom {
+  justify-content: space-between;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 750;
+}
+
+.matchCard__teams {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 0.7rem;
+  align-items: center;
+}
+
+.teamName {
+  gap: 0.45rem;
+  min-width: 0;
+  font-weight: 850;
+}
+
+.teamName span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.teamName--right {
+  justify-content: flex-end;
+  text-align: right;
+}
+
+.flag {
+  font-size: 1.25rem;
+}
+
+.versus {
+  color: var(--accent-2);
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.rankRow {
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.rankRow div {
+  flex: 1;
+  min-width: 0;
+}
+
+.rankRow small {
+  display: block;
+  color: var(--muted);
+  margin-top: 0.16rem;
+}
+
+.rankBadge {
+  color: var(--accent-2);
+  font-weight: 900;
+}
+
+.searchBox {
+  gap: 0.55rem;
+  max-width: 430px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.75rem 0.9rem;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.searchBox input {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  color: var(--text);
+  background: transparent;
+}
+
+.searchBox input::placeholder {
+  color: var(--muted);
+}
+
+.teamCard,
+.stadiumCard {
+  min-height: 180px;
+}
+
+.teamCard__flag {
+  font-size: 2.6rem;
+}
+
+.teamCard h3,
+.stadiumCard h3 {
+  margin: 0.75rem 0 0.25rem;
+  font-size: 1.08rem;
+}
+
+.teamCard p,
+.stadiumCard p {
+  color: var(--muted);
+  margin: 0;
+}
+
+.metaLine {
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-top: 1rem;
+  color: var(--accent-2);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.stadiumCard__icon {
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 1rem;
+  color: var(--accent-2);
+  background: rgba(245, 197, 66, 0.12);
+}
+
+@media (max-width: 860px) {
+  .topbar {
+    align-items: stretch;
+    border-radius: 1.4rem;
+    flex-direction: column;
+  }
+
+  .tabs {
+    overflow-x: auto;
+    justify-content: flex-start;
+  }
+
+  .iconButton {
+    position: absolute;
+    top: 0.7rem;
+    right: 0.7rem;
+  }
+
+  .statsStrip,
+  .grid.twoColumns {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 620px) {
+  .hero {
+    padding-bottom: 3rem;
+  }
+
+  .tabs {
+    border-radius: 1rem;
+  }
+
+  .tab {
+    flex: 0 0 auto;
+  }
+
+  .statsStrip,
+  .grid.twoColumns,
+  .matchCard__teams {
+    grid-template-columns: 1fr;
+  }
+
+  .matchCard__teams {
+    gap: 0.45rem;
+  }
+
+  .teamName--right {
+    justify-content: flex-start;
+    text-align: left;
+  }
+
+  .versus {
+    width: fit-content;
+    padding-left: 2rem;
+  }
+}
