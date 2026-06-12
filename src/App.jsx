@@ -20,7 +20,11 @@ import { groups, teams } from './data/teams.js';
 import { matches } from './data/matches.js';
 import { results } from './data/results.js';
 import { stadiums } from './data/stadiums.js';
-import { calculateGroupStandings } from './utils/standings.js';
+import {
+  calculateBestThirdRanking,
+  calculateGroupStandings,
+  resolveTeamSlot,
+} from './utils/standings.js';
 
 const tabs = [
   { id: 'overview', label: 'Overview', icon: Trophy },
@@ -65,6 +69,11 @@ function App() {
   const groupStandings = useMemo(
     () => calculateGroupStandings({ groups, teams, matches, results }),
     [],
+  );
+
+  const bestThirdRanking = useMemo(
+    () => calculateBestThirdRanking(groupStandings),
+    [groupStandings],
   );
 
   const nextMatches = matches.slice().sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -175,45 +184,26 @@ function App() {
         )}
 
         {activeTab === 'groups' && (
-          <Panel title="Group standings" icon={Table2} description="Calculated from completed group-stage results. Top two qualify automatically; third-place teams are tracked for best-third ranking.">
-            <div className="groupsGrid">
-              {Object.entries(groupStandings).map(([group, table]) => (
-                <article className="groupCard" key={group}>
-                  <header>Group {group}</header>
-                  <div className="standingsTable" role="table" aria-label={`Group ${group} standings`}>
-                    <div className="standingsRow standingsRow--head" role="row">
-                      <span>Team</span>
-                      <span>P</span>
-                      <span>W</span>
-                      <span>D</span>
-                      <span>L</span>
-                      <span>GD</span>
-                      <span>Pts</span>
-                    </div>
-                    {table.map((row) => (
-                      <div className={`standingsRow standingsRow--${row.zone}`} role="row" key={row.code}>
-                        <span className="standingsTeam">
-                          <span className="rankNumber">{row.rank}</span>
-                          <span className="flag" aria-hidden="true">{row.team?.flag ?? '🏳️'}</span>
-                          <strong>{row.team?.name ?? row.code}</strong>
-                        </span>
-                        <span>{row.played}</span>
-                        <span>{row.won}</span>
-                        <span>{row.drawn}</span>
-                        <span>{row.lost}</span>
-                        <span>{formatGoalDifference(row.goalDifference)}</span>
-                        <span className="pointsCell">{row.points}</span>
-                      </div>
-                    ))}
-                  </div>
-                </article>
-              ))}
-            </div>
-          </Panel>
+          <div className="stackedPanels">
+            <Panel title="Group standings" icon={Table2} description="Calculated from completed group-stage results. Top two qualify automatically; third-place teams are tracked separately.">
+              <div className="groupsGrid">
+                {Object.entries(groupStandings).map(([group, table]) => (
+                  <article className="groupCard" key={group}>
+                    <header>Group {group}</header>
+                    <StandingsTable table={table} label={`Group ${group} standings`} />
+                  </article>
+                ))}
+              </div>
+            </Panel>
+
+            <Panel title="Best third-place ranking" icon={Medal} description="The eight best third-placed teams qualify for the Round of 32. This ranking updates automatically as group results are added.">
+              <ThirdPlaceTable table={bestThirdRanking} />
+            </Panel>
+          </div>
         )}
 
         {activeTab === 'bracket' && (
-          <Panel title="Knockout bracket" icon={GitBranch} description="Round of 32 through Final. Opponent labels use FIFA-style qualification placeholders until group standings are final.">
+          <Panel title="Knockout bracket" icon={GitBranch} description="Round of 32 slots resolve automatically from standings when possible. Winner/loser placeholders resolve after knockout results are added.">
             <div className="bracketGrid">
               {['R32', 'R16', 'QF', 'SF', '3RD', 'F'].map((stageCode) => (
                 <section className="bracketRound" key={stageCode}>
@@ -221,7 +211,13 @@ function App() {
                   {knockoutMatches
                     .filter((match) => match.stageCode === stageCode)
                     .map((match) => (
-                      <MatchCard key={match.id} match={match} compact />
+                      <MatchCard
+                        key={match.id}
+                        match={match}
+                        compact
+                        groupStandings={groupStandings}
+                        bestThirdRanking={bestThirdRanking}
+                      />
                     ))}
                 </section>
               ))}
@@ -303,9 +299,58 @@ function Panel({ title, icon: Icon, description, children }) {
   );
 }
 
-function MatchCard({ match, compact = false }) {
-  const home = teamByCode(match.home);
-  const away = teamByCode(match.away);
+function StandingsTable({ table, label }) {
+  return (
+    <div className="standingsTable" role="table" aria-label={label}>
+      <div className="standingsRow standingsRow--head" role="row">
+        <span>Team</span>
+        <span>P</span>
+        <span>W</span>
+        <span>D</span>
+        <span>L</span>
+        <span>GD</span>
+        <span>Pts</span>
+      </div>
+      {table.map((row) => (
+        <div className={`standingsRow standingsRow--${row.zone}`} role="row" key={row.code}>
+          <span className="standingsTeam">
+            <span className="rankNumber">{row.rank}</span>
+            <span className="flag" aria-hidden="true">{row.team?.flag ?? '🏳️'}</span>
+            <strong>{row.team?.name ?? row.code}</strong>
+          </span>
+          <span>{row.played}</span>
+          <span>{row.won}</span>
+          <span>{row.drawn}</span>
+          <span>{row.lost}</span>
+          <span>{formatGoalDifference(row.goalDifference)}</span>
+          <span className="pointsCell">{row.points}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ThirdPlaceTable({ table }) {
+  return (
+    <div className="thirdTable" role="table" aria-label="Best third-place ranking">
+      {table.map((row) => (
+        <div className={`thirdRow thirdRow--${row.zone}`} role="row" key={row.code}>
+          <span className="rankNumber">{row.rank}</span>
+          <span className="flag" aria-hidden="true">{row.team?.flag ?? '🏳️'}</span>
+          <strong>{row.team?.name ?? row.code}</strong>
+          <small>Group {row.group}</small>
+          <span>{row.played}P</span>
+          <span>{formatGoalDifference(row.goalDifference)}</span>
+          <span className="pointsCell">{row.points} pts</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function MatchCard({ match, compact = false, groupStandings = null, bestThirdRanking = null }) {
+  const home = teamByCode(match.home) ?? resolveTeamSlot(match.home, groupStandings, bestThirdRanking);
+  const away = teamByCode(match.away) ?? resolveTeamSlot(match.away, groupStandings, bestThirdRanking);
   const venue = venueById(match.stadiumId);
 
   return (
