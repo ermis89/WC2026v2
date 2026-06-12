@@ -1,0 +1,80 @@
+.groupsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.groupCard,
+.bracketRound {
+  border: 1px solid var(--border);
+  border-radius: 1.15rem;
+  background: rgba(255, 255, 255, 0.055);
+  overflow: hidden;
+}
+
+.groupCard header,
+.bracketRound h3 {
+  margin: 0;
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--accent-2);
+  background: rgba(0, 0, 0, 0.12);
+  font-size: 0.92rem;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.groupRows {
+  display: grid;
+}
+
+.groupRow {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.groupRow:last-child {
+  border-bottom: 0;
+}
+
+.groupRow small {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.bracketGrid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(250px, 1fr));
+  gap: 1rem;
+  overflow-x: auto;
+  padding-bottom: 0.6rem;
+}
+
+.bracketRound {
+  min-width: 250px;
+  display: grid;
+  align-content: start;
+  gap: 0.65rem;
+  padding-bottom: 0.85rem;
+}
+
+.bracketRound .matchCard {
+  margin: 0 0.75rem;
+  background: rgba(255, 255, 255, 0.045);
+}
+
+@media (max-width: 760px) {
+  .bracketGrid {
+    grid-template-columns: 1fr;
+    overflow-x: visible;
+  }
+
+  .bracketRound {
+    min-width: 0;
+  }
+}
