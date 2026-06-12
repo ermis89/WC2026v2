@@ -1,406 +1,103 @@
-import { useMemo, useState } from 'react';
-import {
-  CalendarDays,
-  ChevronRight,
-  GitBranch,
-  Globe2,
-  MapPin,
-  Medal,
-  Moon,
-  Search,
-  Shield,
-  Sparkles,
-  Stadium,
-  Sun,
-  Table2,
-  Trophy,
-  Users,
-} from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import { groups, teams } from './data/teams.js';
 import { matches } from './data/matches.js';
 import { results } from './data/results.js';
 import { stadiums } from './data/stadiums.js';
-import {
-  calculateBestThirdRanking,
-  calculateGroupStandings,
-  resolveTeamSlot,
-} from './utils/standings.js';
+import { calculateBestThirdRanking, calculateGroupStandings, resolveTeamSlot } from './utils/standings.js';
 
-const tabs = [
-  { id: 'overview', label: 'Overview', icon: Trophy },
-  { id: 'matches', label: 'Matches', icon: CalendarDays },
-  { id: 'groups', label: 'Groups', icon: Table2 },
-  { id: 'bracket', label: 'Bracket', icon: GitBranch },
-  { id: 'teams', label: 'Teams', icon: Users },
-  { id: 'stadiums', label: 'Stadiums', icon: Stadium },
+const pages = [
+  ['home', 'Home', 'fa-solid fa-house'],
+  ['matches', 'Matches', 'fa-regular fa-calendar-days'],
+  ['groups', 'Groups', 'fa-solid fa-table-list'],
+  ['bracket', 'Bracket', 'fa-solid fa-sitemap'],
+  ['teams', 'Teams', 'fa-solid fa-users'],
+  ['stadiums', 'Stadiums', 'fa-solid fa-landmark'],
+  ['live', 'Live', 'fa-solid fa-tower-broadcast'],
+  ['stats', 'Stats', 'fa-solid fa-chart-simple'],
+  ['fan', 'Fan Zone', 'fa-solid fa-gamepad'],
+  ['news', 'News', 'fa-regular fa-newspaper'],
 ];
 
-const formatDate = new Intl.DateTimeFormat(undefined, {
-  weekday: 'short',
-  day: '2-digit',
-  month: 'short',
-  hour: '2-digit',
-  minute: '2-digit',
-});
+const flagCodes = { MEX:'mx',RSA:'za',KOR:'kr',CZE:'cz',CAN:'ca',BIH:'ba',QAT:'qa',SUI:'ch',BRA:'br',MAR:'ma',HAI:'ht',SCO:'gb-sct',USA:'us',PAR:'py',AUS:'au',TUR:'tr',GER:'de',CUW:'cw',CIV:'ci',ECU:'ec',NED:'nl',JPN:'jp',SWE:'se',TUN:'tn',BEL:'be',EGY:'eg',IRN:'ir',NZL:'nz',ESP:'es',CPV:'cv',KSA:'sa',URU:'uy',FRA:'fr',SEN:'sn',IRQ:'iq',NOR:'no',ARG:'ar',ALG:'dz',AUT:'at',JOR:'jo',POR:'pt',COD:'cd',UZB:'uz',COL:'co',ENG:'gb-eng',CRO:'hr',GHA:'gh',PAN:'pa' };
+const stageNames = { G:'Group Stage',R32:'Round of 32',R16:'Round of 16',QF:'Quarter-finals',SF:'Semi-finals','3RD':'Bronze Final',F:'Final' };
 
-function teamByCode(code) {
-  return teams.find((team) => team.code === code);
-}
-
-function venueById(id) {
-  return stadiums.find((venue) => venue.id === id);
-}
-
-function App() {
-  const [activeTab, setActiveTab] = useState('overview');
-  const [query, setQuery] = useState('');
+export default function App() {
+  const [page, setPage] = useState('home');
   const [theme, setTheme] = useState('dark');
+  const [filter, setFilter] = useState({ stage: '', group: '', team: '' });
+  const [teamSearch, setTeamSearch] = useState('');
 
-  const filteredTeams = useMemo(() => {
-    const value = query.trim().toLowerCase();
-    if (!value) return teams;
-    return teams.filter((team) =>
-      [team.name, team.code, team.confederation, team.group].some((field) =>
-        String(field).toLowerCase().includes(value),
-      ),
-    );
-  }, [query]);
+  useEffect(() => { document.documentElement.dataset.theme = theme; }, [theme]);
 
-  const groupStandings = useMemo(
-    () => calculateGroupStandings({ groups, teams, matches, results }),
-    [],
-  );
+  const groupStandings = useMemo(() => calculateGroupStandings({ groups, teams, matches, results }), []);
+  const bestThirdRanking = useMemo(() => calculateBestThirdRanking(groupStandings), [groupStandings]);
+  const teamsByCode = useMemo(() => Object.fromEntries(teams.map((team) => [team.code, team])), []);
+  const stadiumsById = useMemo(() => Object.fromEntries(stadiums.map((stadium) => [stadium.id, stadium])), []);
+  const resultMap = useMemo(() => Object.fromEntries(results.map((result) => [result.matchId, result])), []);
+  const sortedMatches = useMemo(() => matches.slice().sort((a, b) => new Date(a.date) - new Date(b.date)), []);
 
-  const bestThirdRanking = useMemo(
-    () => calculateBestThirdRanking(groupStandings),
-    [groupStandings],
-  );
+  const filteredMatches = sortedMatches.filter((match) => {
+    if (filter.stage && match.stageCode !== filter.stage) return false;
+    if (filter.group && match.group !== filter.group) return false;
+    if (filter.team && match.home !== filter.team && match.away !== filter.team) return false;
+    return true;
+  });
+  const filteredTeams = teams.filter((team) => {
+    const q = teamSearch.trim().toLowerCase();
+    return !q || [team.name, team.code, team.group, team.confederation].some((value) => String(value).toLowerCase().includes(q));
+  });
 
-  const nextMatches = matches.slice().sort((a, b) => new Date(a.date) - new Date(b.date));
-  const knockoutMatches = nextMatches.filter((match) => match.stageCode !== 'G');
-  const topSeeds = teams.slice().sort((a, b) => a.fifaRank - b.fifaRank).slice(0, 5);
-
-  return (
-    <main className="app" data-theme={theme}>
-      <section className="hero">
-        <div className="hero__glow" />
-        <nav className="topbar" aria-label="Primary navigation">
-          <div className="brand" aria-label="WC2026 Hub home">
-            <span className="brand__mark">26</span>
-            <span>
-              WC2026 <strong>Hub</strong>
-            </span>
-          </div>
-
-          <div className="tabs" role="tablist" aria-label="App sections">
-            {tabs.map(({ id, label, icon: Icon }) => (
-              <button
-                key={id}
-                className={activeTab === id ? 'tab tab--active' : 'tab'}
-                onClick={() => setActiveTab(id)}
-                type="button"
-                role="tab"
-                aria-selected={activeTab === id}
-              >
-                <Icon size={16} />
-                {label}
-              </button>
-            ))}
-          </div>
-
-          <button
-            className="iconButton"
-            type="button"
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            aria-label="Toggle color theme"
-          >
-            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-          </button>
-        </nav>
-
-        <div className="hero__content">
-          <div className="eyebrow">
-            <Sparkles size={16} /> Unofficial tournament companion
-          </div>
-          <h1>World Cup 2026 command center</h1>
-          <p>
-            A clean, maintainable React app for matches, groups, teams, venues, stats and fan tools. Built as the new foundation for the WC2026 project.
-          </p>
-
-          <div className="hero__actions">
-            <button className="primaryButton" type="button" onClick={() => setActiveTab('matches')}>
-              View matches <ChevronRight size={18} />
-            </button>
-            <button className="secondaryButton" type="button" onClick={() => setActiveTab('groups')}>
-              View groups
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <section className="contentShell">
-        <div className="statsStrip" aria-label="Tournament statistics">
-          <StatCard icon={Users} label="Teams" value="48" />
-          <StatCard icon={CalendarDays} label="Matches" value="104" />
-          <StatCard icon={Globe2} label="Host nations" value="3" />
-          <StatCard icon={Stadium} label="Venues" value="16" />
-        </div>
-
-        {activeTab === 'overview' && (
-          <div className="grid twoColumns">
-            <Panel title="Next fixtures" icon={CalendarDays}>
-              <div className="matchList">
-                {nextMatches.slice(0, 4).map((match) => (
-                  <MatchCard key={match.id} match={match} compact />
-                ))}
-              </div>
-            </Panel>
-
-            <Panel title="Top-ranked teams" icon={Medal}>
-              <div className="rankList">
-                {topSeeds.map((team) => (
-                  <div className="rankRow" key={team.code}>
-                    <span className="flag" aria-hidden="true">{team.flag}</span>
-                    <div>
-                      <strong>{team.name}</strong>
-                      <small>{team.confederation} · Group {team.group}</small>
-                    </div>
-                    <span className="rankBadge">#{team.fifaRank}</span>
-                  </div>
-                ))}
-              </div>
-            </Panel>
-          </div>
-        )}
-
-        {activeTab === 'matches' && (
-          <Panel title="Match schedule" icon={CalendarDays} description="Full 104-match skeleton. Knockout opponents remain placeholders until standings are known.">
-            <div className="matchGrid">
-              {nextMatches.map((match) => (
-                <MatchCard key={match.id} match={match} />
-              ))}
-            </div>
-          </Panel>
-        )}
-
-        {activeTab === 'groups' && (
-          <div className="stackedPanels">
-            <Panel title="Group standings" icon={Table2} description="Calculated from completed group-stage results. Positions remain projected until all six matches in the group are complete.">
-              <div className="groupsGrid">
-                {Object.entries(groupStandings).map(([group, table]) => (
-                  <article className="groupCard" key={group}>
-                    <header>
-                      <span>Group {group}</span>
-                      <StatusPill status={table[0]?.status} progress={table[0]?.progress} />
-                    </header>
-                    <StandingsTable table={table} label={`Group ${group} standings`} />
-                  </article>
-                ))}
-              </div>
-            </Panel>
-
-            <Panel title="Best third-place ranking" icon={Medal} description="The eight best third-placed teams qualify for the Round of 32. This ranking is projected until every group is complete.">
-              <ThirdPlaceTable table={bestThirdRanking} />
-            </Panel>
-          </div>
-        )}
-
-        {activeTab === 'bracket' && (
-          <Panel title="Knockout bracket" icon={GitBranch} description="Round of 32 slots resolve from standings. Projected teams are explicitly labelled until group qualification is confirmed.">
-            <div className="bracketGrid">
-              {['R32', 'R16', 'QF', 'SF', '3RD', 'F'].map((stageCode) => (
-                <section className="bracketRound" key={stageCode}>
-                  <h3>{knockoutMatches.find((match) => match.stageCode === stageCode)?.stage}</h3>
-                  {knockoutMatches
-                    .filter((match) => match.stageCode === stageCode)
-                    .map((match) => (
-                      <MatchCard
-                        key={match.id}
-                        match={match}
-                        compact
-                        groupStandings={groupStandings}
-                        bestThirdRanking={bestThirdRanking}
-                      />
-                    ))}
-                </section>
-              ))}
-            </div>
-          </Panel>
-        )}
-
-        {activeTab === 'teams' && (
-          <Panel title="Teams" icon={Shield} description="Search by country, code, group or confederation.">
-            <label className="searchBox">
-              <Search size={18} />
-              <input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search teams..."
-                type="search"
-              />
-            </label>
-
-            <div className="teamGrid">
-              {filteredTeams.map((team) => (
-                <article className="teamCard" key={team.code}>
-                  <span className="teamCard__flag" aria-hidden="true">{team.flag}</span>
-                  <h3>{team.name}</h3>
-                  <p>{team.code} · {team.confederation}</p>
-                  <div className="metaLine">
-                    <span>Group {team.group}</span>
-                    <span>{team.titles} titles</span>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </Panel>
-        )}
-
-        {activeTab === 'stadiums' && (
-          <Panel title="Host stadiums" icon={Stadium} description="All 16 host venues with capacity and planned match count.">
-            <div className="stadiumGrid">
-              {stadiums.map((venue) => (
-                <article className="stadiumCard" key={venue.id}>
-                  <div className="stadiumCard__icon"><MapPin size={24} /></div>
-                  <h3>{venue.name}</h3>
-                  <p>{venue.fifaName}</p>
-                  <div className="metaLine">
-                    <span>{venue.city}</span>
-                    <span>{venue.capacity.toLocaleString()}</span>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </Panel>
-        )}
-      </section>
-    </main>
-  );
+  return <div className="app-shell">
+    <Ticker />
+    <Header page={page} setPage={setPage} theme={theme} setTheme={setTheme} />
+    {page === 'home' && <Home setPage={setPage} matches={sortedMatches} teamsByCode={teamsByCode} stadiumsById={stadiumsById} resultMap={resultMap} />}
+    {page === 'matches' && <Matches matches={filteredMatches} teamsByCode={teamsByCode} stadiumsById={stadiumsById} resultMap={resultMap} filter={filter} setFilter={setFilter} />}
+    {page === 'groups' && <Groups groupStandings={groupStandings} bestThirdRanking={bestThirdRanking} />}
+    {page === 'bracket' && <Bracket matches={sortedMatches.filter((match) => match.stageCode !== 'G')} teamsByCode={teamsByCode} stadiumsById={stadiumsById} groupStandings={groupStandings} bestThirdRanking={bestThirdRanking} />}
+    {page === 'teams' && <Teams teams={filteredTeams} teamSearch={teamSearch} setTeamSearch={setTeamSearch} />}
+    {page === 'stadiums' && <Stadiums stadiums={stadiums} />}
+    {page === 'live' && <Live matches={sortedMatches} resultMap={resultMap} teamsByCode={teamsByCode} stadiumsById={stadiumsById} />}
+    {page === 'stats' && <Stats teams={teams} groupStandings={groupStandings} />}
+    {page === 'fan' && <Fan teams={teams} />}
+    {page === 'news' && <News />}
+    <Footer setPage={setPage} />
+  </div>;
 }
 
-function StatCard({ icon: Icon, label, value }) {
-  return (
-    <article className="statCard">
-      <Icon size={20} />
-      <strong>{value}</strong>
-      <span>{label}</span>
-    </article>
-  );
+function Ticker() { return <div className="ticker-wrap"><div className="ticker"><span><b>WC2026 Hub</b> · Vite/React rebuild based on the original tournament guide</span><span><b>48 teams</b> · 104 matches · 16 venues</span><span><b>GitHub Pages</b> deployment active</span></div></div>; }
+
+function Header({ page, setPage, theme, setTheme }) {
+  return <header className="site"><div className="container nav"><div className="brand" onClick={() => setPage('home')}><span className="cup">🏆</span><span className="txt">WC <em>2026</em> HUB</span></div><nav className="tabs">{pages.map(([id, label, icon]) => <button key={id} className={page === id ? 'active' : ''} onClick={() => setPage(id)}><i className={icon} />{label}</button>)}</nav><div className="nav-actions"><button className="icon-btn gold" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} title="Toggle theme"><i className={theme === 'dark' ? 'fa-solid fa-moon' : 'fa-solid fa-sun'} /></button></div></div></header>;
 }
 
-function Panel({ title, icon: Icon, description, children }) {
-  return (
-    <section className="panel">
-      <header className="panel__header">
-        <div>
-          <h2><Icon size={21} /> {title}</h2>
-          {description && <p>{description}</p>}
-        </div>
-      </header>
-      {children}
-    </section>
-  );
+function Home({ setPage, matches, teamsByCode, stadiumsById, resultMap }) {
+  return <section className="page active" id="page-home"><div className="hero"><div className="aurora"><i /><i /><i /></div><div className="container"><div className="kicker">FIFA WORLD CUP 26 · JUNE 11 — JULY 19</div><h1>WORLD CUP <span className="grad">2026</span></h1><p className="sub">The biggest World Cup in history. 48 nations, three host countries, one trophy. Your complete tournament companion.</p><div className="hosts"><span><Flag code="USA" small />United States</span><span><Flag code="CAN" small />Canada</span><span><Flag code="MEX" small />Mexico</span></div><Countdown /><div className="quickstats"><QuickStat icon="fa-solid fa-shield-halved" value="48" label="Teams" /><QuickStat icon="fa-solid fa-futbol" value="104" label="Matches" /><QuickStat icon="fa-solid fa-city" value="16" label="Host Cities" /><QuickStat icon="fa-solid fa-earth-americas" value="3" label="Countries" /><QuickStat icon="fa-solid fa-calendar" value="39" label="Days" /></div></div></div><div className="container"><div className="sec-head"><h2><i className="fa-solid fa-bolt" /> Today's Matches</h2><button className="btn ghost" onClick={() => setPage('matches')}><i className="fa-regular fa-calendar" /> Full schedule</button></div><div className="match-grid">{matches.slice(0,2).map((match) => <MatchCard key={match.id} match={match} teamsByCode={teamsByCode} stadiumsById={stadiumsById} result={resultMap[match.id]} />)}</div><div className="sec-head" style={{ marginTop: '2.4rem' }}><h2><i className="fa-solid fa-fire" /> Upcoming Highlights</h2></div><div className="match-grid">{matches.slice(2,8).map((match) => <MatchCard key={match.id} match={match} teamsByCode={teamsByCode} stadiumsById={stadiumsById} result={resultMap[match.id]} />)}</div></div></section>;
 }
 
-function StandingsTable({ table, label }) {
-  return (
-    <div className="standingsTable" role="table" aria-label={label}>
-      <div className="standingsRow standingsRow--head" role="row">
-        <span>Team</span>
-        <span>P</span>
-        <span>W</span>
-        <span>D</span>
-        <span>L</span>
-        <span>GD</span>
-        <span>Pts</span>
-      </div>
-      {table.map((row) => (
-        <div className={`standingsRow standingsRow--${row.zone}`} role="row" key={row.code}>
-          <span className="standingsTeam">
-            <span className="rankNumber">{row.rank}</span>
-            <span className="flag" aria-hidden="true">{row.team?.flag ?? '🏳️'}</span>
-            <strong>{row.team?.name ?? row.code}</strong>
-            <span className={`miniStatus miniStatus--${row.status}`}>{row.status}</span>
-          </span>
-          <span>{row.played}</span>
-          <span>{row.won}</span>
-          <span>{row.drawn}</span>
-          <span>{row.lost}</span>
-          <span>{formatGoalDifference(row.goalDifference)}</span>
-          <span className="pointsCell">{row.points}</span>
-        </div>
-      ))}
-    </div>
-  );
+function Countdown() { const [now, setNow] = useState(Date.now()); useEffect(() => { const id = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(id); }, []); const diff = Math.max(0, new Date('2026-06-11T19:00:00Z').getTime() - now); const parts = [['Days', Math.floor(diff / 86400000)], ['Hours', Math.floor(diff / 3600000) % 24], ['Minutes', Math.floor(diff / 60000) % 60], ['Seconds', Math.floor(diff / 1000) % 60]]; return <><div className="countdown">{parts.map(([label, value]) => <div className="cd-cell" key={label}><b>{String(value).padStart(2, '0')}</b><small>{label}</small></div>)}</div><div className="cd-label"><b>Countdown</b> to opening match</div></>; }
+function QuickStat({ icon, value, label }) { return <div className="qs"><i className={icon} /><b>{value}</b><small>{label}</small></div>; }
+
+function Matches({ matches, teamsByCode, stadiumsById, resultMap, filter, setFilter }) {
+  return <section className="page active"><div className="container"><div className="sec-head"><h2><i className="fa-regular fa-calendar-days" /> Match Schedule</h2><p>Full 104-match schedule with group and knockout placeholders.</p></div><div className="filters"><select value={filter.stage} onChange={(e) => setFilter({ ...filter, stage: e.target.value })}><option value="">All stages</option>{Object.entries(stageNames).map(([code, label]) => <option key={code} value={code}>{label}</option>)}</select><select value={filter.group} onChange={(e) => setFilter({ ...filter, group: e.target.value })}><option value="">All groups</option>{Object.keys(groups).map((group) => <option key={group}>{group}</option>)}</select><select value={filter.team} onChange={(e) => setFilter({ ...filter, team: e.target.value })}><option value="">All teams</option>{teams.map((team) => <option key={team.code} value={team.code}>{team.name}</option>)}</select><button className="chip" onClick={() => setFilter({ stage: '', group: '', team: '' })}><i className="fa-solid fa-xmark" /> Clear</button></div><GroupedMatches matches={matches} teamsByCode={teamsByCode} stadiumsById={stadiumsById} resultMap={resultMap} /></div></section>;
 }
+function GroupedMatches({ matches, teamsByCode, stadiumsById, resultMap }) { const blocks = matches.reduce((acc, match) => { const key = match.date.slice(0, 10); (acc[key] ||= []).push(match); return acc; }, {}); return <div>{Object.entries(blocks).map(([day, list]) => <div className="day-block" key={day}><h3><span className="dot" />{new Date(day).toLocaleDateString(undefined, { weekday:'long', month:'long', day:'numeric' })}</h3><div className="match-grid">{list.map((match) => <MatchCard key={match.id} match={match} teamsByCode={teamsByCode} stadiumsById={stadiumsById} result={resultMap[match.id]} />)}</div></div>)}</div>; }
+function MatchCard({ match, teamsByCode, stadiumsById, result }) { const home = teamsByCode[match.home] || { code: match.home, name: match.home }; const away = teamsByCode[match.away] || { code: match.away, name: match.away }; const stadium = stadiumsById[match.stadiumId]; return <article className={`mcard ${result ? 'status-done' : 'status-today'}`}><div className="top"><span className="stage-tag">#{match.id} · {match.stage}</span>{match.group && <span className="badge gold">Group {match.group}</span>}</div><div className="teams"><div className="team"><Flag code={home.code} /><span>{home.name}</span></div><div className="mid">{result ? <div className="score">{result.homeScore ?? result.score?.[0]}–{result.awayScore ?? result.score?.[1]}</div> : <div className="ko">{formatTime(match.date)}</div>}<div className="vs">{result ? 'FT' : 'VS'}</div></div><div className="team away"><Flag code={away.code} /><span>{away.name}</span></div></div><div className="bottom"><span><i className="fa-regular fa-clock" /> {formatDate(match.date)}</span><span className="venue"><i className="fa-solid fa-location-dot" /> {stadium?.city ?? 'TBD'}</span></div></article>; }
 
-function ThirdPlaceTable({ table }) {
-  return (
-    <div className="thirdTable" role="table" aria-label="Best third-place ranking">
-      {table.map((row) => (
-        <div className={`thirdRow thirdRow--${row.zone}`} role="row" key={row.code}>
-          <span className="rankNumber">{row.rank}</span>
-          <span className="flag" aria-hidden="true">{row.team?.flag ?? '🏳️'}</span>
-          <strong>{row.team?.name ?? row.code}</strong>
-          <small>Group {row.group}</small>
-          <span>{row.played}P</span>
-          <span>{formatGoalDifference(row.goalDifference)}</span>
-          <span className="pointsCell">{row.points} pts</span>
-          <span className={`miniStatus miniStatus--${row.status}`}>{row.status}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
+function Groups({ groupStandings, bestThirdRanking }) { return <section className="page active"><div className="container"><div className="sec-head"><h2><i className="fa-solid fa-table-list" /> Group Standings</h2><p>Top 2 qualify directly · 8 best third-placed teams also advance to the Round of 32</p></div><div className="groups-grid">{Object.entries(groupStandings).map(([group, table]) => <GroupCard key={group} group={group} table={table} />)}</div><div className="legend"><span><i className="fa-solid fa-circle" style={{ color:'var(--green)' }} />Qualified position</span><span><i className="fa-solid fa-circle" style={{ color:'var(--yellow)' }} />Possible best third</span><span><i className="fa-solid fa-circle" style={{ color:'var(--red)' }} />Elimination zone</span></div><div className="panel" style={{ marginTop:'1.4rem' }}><h3><i className="fa-solid fa-ranking-star" /> Best Third-Placed Teams Ranking</h3><ThirdsTable rows={bestThirdRanking} /></div></div></section>; }
+function GroupCard({ group, table }) { return <div className="gcard"><header><h3>Group {group}</h3><span className={`status-pill ${table[0]?.status}`}>{table[0]?.status} · {table[0]?.progress?.completed}/{table[0]?.progress?.total}</span></header><table><thead><tr><th>#</th><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GD</th><th>Pts</th></tr></thead><tbody>{table.map((row) => <tr key={row.code} className={row.zone === 'qualified' ? 'q1' : row.zone === 'third' ? 'q3' : 'q4'}><td>{row.rank}</td><td className="tname"><Flag code={row.code} />{row.team?.name}</td><td>{row.played}</td><td>{row.won}</td><td>{row.drawn}</td><td>{row.lost}</td><td>{formatGoalDifference(row.goalDifference)}</td><td className="pts">{row.points}</td></tr>)}</tbody></table></div>; }
+function ThirdsTable({ rows }) { return <table className="data"><thead><tr><th>#</th><th>Team</th><th>Group</th><th>P</th><th>GD</th><th>Pts</th><th>Status</th></tr></thead><tbody>{rows.map((row) => <tr key={row.code}><td>{row.rank}</td><td><Flag code={row.code} /> {row.team?.name}</td><td>{row.group}</td><td>{row.played}</td><td>{formatGoalDifference(row.goalDifference)}</td><td>{row.points}</td><td><span className={`status-pill ${row.status}`}>{row.status}</span></td></tr>)}</tbody></table>; }
 
-function StatusPill({ status, progress }) {
-  const label = status === 'confirmed' ? 'Confirmed' : 'Projected';
-  const progressText = progress ? `${progress.completed}/${progress.total}` : '0/0';
+function Bracket({ matches, teamsByCode, stadiumsById, groupStandings, bestThirdRanking }) { const rounds = ['R32','R16','QF','SF','3RD','F']; return <section className="page active"><div className="container"><div className="sec-head"><h2><i className="fa-solid fa-sitemap" /> Knockout Bracket</h2><p>Round of 32 → Final · Scroll horizontally</p></div><div className="bracket-scroll"><div className="bracket">{rounds.map((round) => <div className="b-round" key={round}><h4>{stageNames[round]}</h4>{matches.filter((match) => match.stageCode === round).map((match) => <BracketMatch key={match.id} match={match} teamsByCode={teamsByCode} stadiumsById={stadiumsById} groupStandings={groupStandings} bestThirdRanking={bestThirdRanking} />)}</div>)}</div></div></div></section>; }
+function BracketMatch({ match, teamsByCode, stadiumsById, groupStandings, bestThirdRanking }) { const home = teamsByCode[match.home] || resolveTeamSlot(match.home, groupStandings, bestThirdRanking); const away = teamsByCode[match.away] || resolveTeamSlot(match.away, groupStandings, bestThirdRanking); const stadium = stadiumsById[match.stadiumId]; return <div className={`bmatch ${match.stageCode === 'F' ? 'final-match' : ''}`}><div className="brow"><Flag code={home?.code} /><span>{home?.name || match.home}</span></div><div className="brow"><Flag code={away?.code} /><span>{away?.name || match.away}</span></div><div className="bmeta"><span>#{match.id}</span><span>{stadium?.city}</span></div></div>; }
 
-  return (
-    <span className={`statusPill statusPill--${status}`}>
-      {label} · {progressText}
-    </span>
-  );
-}
-
-function MatchCard({ match, compact = false, groupStandings = null, bestThirdRanking = null }) {
-  const home = teamByCode(match.home) ?? resolveTeamSlot(match.home, groupStandings, bestThirdRanking);
-  const away = teamByCode(match.away) ?? resolveTeamSlot(match.away, groupStandings, bestThirdRanking);
-  const venue = venueById(match.stadiumId);
-
-  return (
-    <article className={compact ? 'matchCard matchCard--compact' : 'matchCard'}>
-      <div className="matchCard__top">
-        <span>#{match.id} · {match.stage}</span>
-        {match.group && <span>Group {match.group}</span>}
-      </div>
-      <div className="matchCard__teams">
-        <TeamName team={home} fallback={match.home} />
-        <span className="versus">vs</span>
-        <TeamName team={away} fallback={match.away} align="right" />
-      </div>
-      <div className="matchCard__bottom">
-        <span>{formatDate.format(new Date(match.date))}</span>
-        <span>{venue?.city ?? 'TBD'}</span>
-      </div>
-    </article>
-  );
-}
-
-function TeamName({ team, fallback, align = 'left' }) {
-  return (
-    <div className={align === 'right' ? 'teamName teamName--right' : 'teamName'}>
-      <span className="flag" aria-hidden="true">{team?.flag ?? '🏳️'}</span>
-      <span>{team?.name ?? fallback}</span>
-      {team?.slotStatus && <span className={`miniStatus miniStatus--${team.slotStatus}`}>{team.slotStatus}</span>}
-    </div>
-  );
-}
-
-function formatGoalDifference(value) {
-  if (value > 0) return `+${value}`;
-  return String(value);
-}
-
-export default App;
+function Teams({ teams, teamSearch, setTeamSearch }) { return <section className="page active"><div className="container"><div className="sec-head"><h2><i className="fa-solid fa-users" /> Teams Directory</h2><p>All 48 qualified nations.</p></div><div className="filters"><input type="text" value={teamSearch} onChange={(e) => setTeamSearch(e.target.value)} placeholder="Search team…" /></div><div className="teams-grid">{teams.map((team) => <article className="tcard" key={team.code}><Flag code={team.code} large /><h3>{team.name}</h3><div className="meta"><span>{team.confederation}</span><span>Group {team.group}</span><span>#{team.fifaRank}</span></div></article>)}</div></div></section>; }
+function Stadiums({ stadiums }) { const byCountry = stadiums.reduce((acc, stadium) => { (acc[stadium.country] ||= []).push(stadium); return acc; }, {}); return <section className="page active"><div className="container"><div className="sec-head"><h2><i className="fa-solid fa-landmark" /> Stadiums & Host Cities</h2><p>16 venues across the USA, Mexico and Canada.</p></div>{Object.entries(byCountry).map(([country, list]) => <div key={country}><h3 className="country-head"><i className="fa-solid fa-location-dot" />{country}</h3><div className="stad-grid">{list.map((stadium) => <article className="scard" key={stadium.id}><div className="img" style={{ background:'linear-gradient(135deg, rgba(0,102,255,.45), rgba(255,215,0,.25))' }}><i className="fa-solid fa-landmark" /><span className="cap-tag">{stadium.capacity.toLocaleString()}</span></div><div className="body"><h3>{stadium.fifaName || stadium.name}</h3><div className="real">{stadium.name}</div><div className="meta"><span>{stadium.city}</span><span>{stadium.matches} matches</span></div></div></article>)}</div></div>)}</div></section>; }
+function Live({ matches, resultMap, teamsByCode, stadiumsById }) { const recent = matches.filter((match) => resultMap[match.id]).slice(0,6); return <section className="page active"><div className="container"><div className="sec-head"><h2><i className="fa-solid fa-tower-broadcast" /> Live Scores & Results</h2><span className="badge gold">Updated from results module</span></div>{recent.length ? <div className="live-board">{recent.map((match) => <MatchCard key={match.id} match={match} teamsByCode={teamsByCode} stadiumsById={stadiumsById} result={resultMap[match.id]} />)}</div> : <div className="live-empty">No completed matches in the current dataset.</div>}</div></section>; }
+function Stats({ teams, groupStandings }) { const top = teams.slice().sort((a,b) => a.fifaRank - b.fifaRank).slice(0,10); return <section className="page active"><div className="container"><div className="sec-head"><h2><i className="fa-solid fa-chart-simple" /> Tournament Statistics</h2><p>Data-driven stats panels ready for live updates.</p></div><div className="stats-grid"><div className="panel"><h3><i className="fa-solid fa-ranking-star" /> FIFA Ranking Snapshot</h3>{top.map((team,i) => <div className="bar-row" key={team.code}><span>{i+1}</span><span>{team.name}</span><b>#{team.fifaRank}</b></div>)}</div><div className="panel"><h3><i className="fa-solid fa-table-list" /> Groups Progress</h3>{Object.entries(groupStandings).map(([group, table]) => <div className="event-row" key={group}><span className="min">{group}</span><span>Group {group}</span><b>{table[0]?.progress?.completed}/{table[0]?.progress?.total}</b></div>)}</div></div></div></section>; }
+function Fan({ teams }) { return <section className="page active"><div className="container"><div className="sec-head"><h2><i className="fa-solid fa-gamepad" /> Fan Zone</h2><p>Predictions, favorites, trivia and bracket challenge.</p></div><div className="fan-grid"><div className="panel"><h3><i className="fa-solid fa-star" /> My Favorite Team</h3><select className="fav-select"><option>— Choose your team —</option>{teams.map((team) => <option key={team.code}>{team.name}</option>)}</select></div><div className="panel"><h3><i className="fa-solid fa-wand-magic-sparkles" /> Match Predictor</h3><div className="empty-note">Prediction persistence will be connected in the next iteration.</div></div><div className="panel"><h3><i className="fa-solid fa-circle-question" /> Trivia Quiz</h3><div className="empty-note">Trivia module will be ported from the uploaded app.</div></div></div></div></section>; }
+function News() { return <section className="page active"><div className="container"><div className="sec-head"><h2><i className="fa-regular fa-newspaper" /> News & Daily Updates</h2><span className="badge gold">React port</span></div><div className="news-list"><article className="news-item featured"><div className="nmeta"><span>2026-06-12</span><span>Update</span></div><h3>WC2026v2 rebuilt as Vite/React app</h3><p>The React implementation now follows the visual system and structure of the uploaded World Cup 2026 Hub HTML application.</p></article></div></div></section>; }
+function Footer({ setPage }) { return <footer className="site"><div className="container"><div className="cols"><div><h4>🏆 World Cup 2026 Hub</h4><p style={{ fontSize:'.84rem', color:'var(--muted)' }}>Unofficial fan guide rebuilt in Vite/React from the original HTML application.</p></div><div><h4>Tournament</h4><ul><li>Group Stage: Jun 11 – Jun 27</li><li>Round of 32: Jun 28 – Jul 3</li><li>Final: Jul 19</li></ul></div><div><h4>Quick Links</h4><ul>{pages.slice(1,6).map(([id,label]) => <li key={id}><a href="#" onClick={(e) => { e.preventDefault(); setPage(id); }}>{label}</a></li>)}</ul></div></div><div className="base"><span>FIFA World Cup 2026 is a trademark of FIFA. This is an unofficial fan project.</span><span>Vite/React implementation.</span></div></div></footer>; }
+function Flag({ code, small=false, large=false }) { const flag = flagCodes[code]; const cls = `flag${small ? ' sm' : ''}${large ? ' lg' : ''}`; if (!flag) return <span className={`${cls} emoji`}>🏳️</span>; return <img className={cls} src={`https://flagcdn.com/w80/${flag}.png`} alt={code} loading="lazy" />; }
+function formatDate(value) { return new Date(value).toLocaleString(undefined, { weekday:'short', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }); }
+function formatTime(value) { return new Date(value).toLocaleTimeString(undefined, { hour:'2-digit', minute:'2-digit' }); }
+function formatGoalDifference(value) { return value > 0 ? `+${value}` : String(value); }
