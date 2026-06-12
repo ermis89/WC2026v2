@@ -1,3 +1,8 @@
+.stackedPanels {
+  display: grid;
+  gap: 1rem;
+}
+
 .groupsGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -95,6 +100,37 @@
   font-weight: 950;
 }
 
+.thirdTable {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 0.7rem;
+}
+
+.thirdRow {
+  display: grid;
+  grid-template-columns: auto auto 1fr auto auto auto auto;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.95rem;
+  background: rgba(255, 255, 255, 0.045);
+  font-size: 0.82rem;
+}
+
+.thirdRow small {
+  color: var(--muted);
+  font-weight: 850;
+}
+
+.thirdRow--third-qualified {
+  box-shadow: inset 4px 0 0 #23c55e;
+}
+
+.thirdRow--third-eliminated {
+  box-shadow: inset 4px 0 0 rgba(255, 255, 255, 0.14);
+}
+
 .bracketGrid {
   display: grid;
   grid-template-columns: repeat(6, minmax(250px, 1fr));
@@ -132,5 +168,14 @@
     gap: 0.25rem;
     padding: 0.65rem 0.6rem;
     font-size: 0.76rem;
+  }
+
+  .thirdRow {
+    grid-template-columns: auto auto 1fr auto;
+  }
+
+  .thirdRow span:nth-last-child(2),
+  .thirdRow .pointsCell {
+    justify-self: end;
   }
 }
